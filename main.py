@@ -4,18 +4,19 @@ import cv2
 import numpy as np
 from collections import OrderedDict
 
-subjects = ["", "liv tyler", "adrien brody"]
 face_recognizer = cv2.face.LBPHFaceRecognizer_create()
 # face_recognizer = cv2.face.FisherFaceRecognizer_create()
 
 
+labels_dict = OrderedDict()
+
+
 def prepare_training_data(data_folder_path):
+    global labels_dict
     dirs = os.listdir(data_folder_path)
-    # print(dirs)
     faces = []
     labels = []
     label_numbers = [i for i in range(len(dirs))]
-    # print(label_numbers)
     labels_dict = OrderedDict(zip(dirs, label_numbers))
     print(labels_dict)
     for dir in dirs:
@@ -25,14 +26,14 @@ def prepare_training_data(data_folder_path):
         for image_path in images:
             if os.path.join(data_folder_path, dir, image_path).endswith('jpg'):
                 image = cv2.imread(os.path.join(data_folder_path, dir, image_path))
-                # print(os.path.join(data_folder_path, dir, image_path))
 
                 # display an image window to show the image
                 # cv2.imshow("Training on image...", image)
                 # cv2.waitKey(100)
 
                 # detect face
-                face, rect = detect_face(image)
+                faces_folder = os.path.join('faces', dir, image_path)
+                face, rect = detect_face(image, faces_folder)
 
                 if face is not None:
                     # add face to list of faces
@@ -47,7 +48,7 @@ def prepare_training_data(data_folder_path):
     return faces, labels
 
 
-def detect_face(img):
+def detect_face(img, path):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
     faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5)
@@ -55,7 +56,9 @@ def detect_face(img):
         return None, None
 
     (x, y, w, h) = faces[0]
-
+    cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
+    faces_folder = 'faces'
+    cv2.imwrite(path, img)
     # return only the face part of the image
     return gray[y:y + w, x:x + h], faces[0]
 
@@ -63,15 +66,16 @@ def detect_face(img):
 def predict(test_img):
     img = test_img.copy()
     # detect face from the image
-    face, rect = detect_face(img)
-    print(face)
+    face, rect = detect_face(img, os.path.join('results', 'test.jpg'))
+    # print(face)
 
     # predict the image using our face recognizer
     label = face_recognizer.predict(face)
     print(label)
-    # get name of respective label returned by face recognizer
-    label_text = label[0]
-    print(label_text)
+    print(labels_dict)
+    for k, v in labels_dict.items():
+        if v == label[0]:
+            print('NAME:', k)
 
     # # draw a rectangle around face detected
     # draw_rectangle(img, rect)
@@ -100,22 +104,11 @@ if __name__ == '__main__':
     print("Total labels: ", len(labels))
     face_recognizer.train(faces, np.array(labels))
 
-
     print("Predicting images...")
 
-    # load test images
-    test_img1 = cv2.imread("test_data/brody.jpg")
-    # test_img2 = cv2.imread("test_data/test2.jpg")
+    # load test image
+    test_img1 = cv2.imread("test_data/liv-tyler.jpg")
 
     # perform a prediction
     predicted_img1 = predict(test_img1)
-    # predicted_img2 = predict(test_img2)
     print("Prediction complete")
-
-    # display both images
-    # cv2.imshow(subjects[1], predicted_img1)
-    # cv2.imshow(subjects[2], predicted_img2)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
-
-
