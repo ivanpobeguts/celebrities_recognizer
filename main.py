@@ -3,52 +3,55 @@ import os
 import cv2
 import numpy as np
 from collections import OrderedDict
+import logging
+
+# logging.basicConfig(level=logging.DEBUG)
+
 
 face_recognizer = cv2.face.LBPHFaceRecognizer_create()
 # face_recognizer = cv2.face.FisherFaceRecognizer_create()
 
 
-labels_dict = OrderedDict()
+labels_dict = {}
 
 
 def prepare_training_data(data_folder_path):
-    global labels_dict
     dirs = os.listdir(data_folder_path)
     faces = []
     labels = []
     label_numbers = [i for i in range(len(dirs))]
-    labels_dict = OrderedDict(zip(dirs, label_numbers))
-    print(labels_dict)
-    for dir in dirs:
+    labels_dict.update(zip(dirs, label_numbers))
+    logger.debug('labels dict: {}'.format(labels_dict))
+    for dir_name in dirs:
 
-        images = os.listdir(os.path.join(data_folder_path, dir))
-        label = labels_dict[dir]
+        images = os.listdir(os.path.join(data_folder_path, dir_name))
+        label = labels_dict[dir_name]
         for image_path in images:
-            if os.path.join(data_folder_path, dir, image_path).endswith('jpg'):
-                image = cv2.imread(os.path.join(data_folder_path, dir, image_path))
+            if os.path.join(data_folder_path, dir_name, image_path).endswith('jpg'):
+                image = cv2.imread(os.path.join(data_folder_path, dir_name, image_path))
 
                 # display an image window to show the image
                 # cv2.imshow("Training on image...", image)
                 # cv2.waitKey(100)
 
                 # detect face
-                faces_folder = os.path.join('faces', dir, image_path)
-                face, rect = detect_face(image, faces_folder)
+                faces_folder = os.path.join('faces', dir_name, image_path)
+                face, rect = detect_and_save_face(image, faces_folder)
 
                 if face is not None:
                     # add face to list of faces
                     faces.append(face)
                     labels.append(label)
-                    print(os.path.join(data_folder_path, dir, image_path), label)
+                    logger.debug('Detecting {}, {}'.format(os.path.join(data_folder_path, dir_name, image_path), label))
 
-                cv2.destroyAllWindows()
-                cv2.waitKey(1)
-                cv2.destroyAllWindows()
+                # cv2.destroyAllWindows()
+                # cv2.waitKey(1)
+                # cv2.destroyAllWindows()
 
     return faces, labels
 
 
-def detect_face(img, path):
+def detect_and_save_face(img, path):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
     faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5)
@@ -60,14 +63,14 @@ def detect_face(img, path):
     faces_folder = 'faces'
     cv2.imwrite(path, img)
     # return only the face part of the image
+    logger.debug('1st parameter: {},\n 2nd parameter: {}'.format(gray[y:y + w, x:x + h], faces[0]))
     return gray[y:y + w, x:x + h], faces[0]
 
 
 def predict(test_img):
     img = test_img.copy()
     # detect face from the image
-    face, rect = detect_face(img, os.path.join('results', 'test.jpg'))
-    # print(face)
+    face, rect = detect_and_save_face(img, os.path.join('results', 'test.jpg'))
 
     # predict the image using our face recognizer
     label = face_recognizer.predict(face)
@@ -95,8 +98,14 @@ def draw_text(img, text, x, y):
 
 
 if __name__ == '__main__':
+    logger = logging.getLogger('Debug logger')
+    logger.setLevel(logging.DEBUG)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+    logger.addHandler(ch)
+
     print("Preparing data...")
-    faces, labels = prepare_training_data("samples/thumbnails_features_deduped_sample")
+    faces, labels = prepare_training_data("samples/small_sample")
     print("Data prepared")
 
     # print total faces and labels
@@ -107,7 +116,7 @@ if __name__ == '__main__':
     print("Predicting images...")
 
     # load test image
-    test_img1 = cv2.imread("test_data/liv-tyler.jpg")
+    test_img1 = cv2.imread("test_data/brody.jpg")
 
     # perform a prediction
     predicted_img1 = predict(test_img1)
