@@ -52,9 +52,10 @@ def prepare_training_data(data_folder_path):
 
 
 def detect_and_save_face(img, path):
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5)
+    gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    gray = np.array(gray_image, 'uint8')
+    face_cascade = cv2.CascadeClassifier('opencv_files/lbpcascade_frontalface.xml')
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.2, minNeighbors=5)
     if (len(faces) == 0):
         return None, None
 
@@ -73,11 +74,12 @@ def predict(test_img):
     face, rect = detect_and_save_face(img, os.path.join('results', 'test.jpg'))
 
     # predict the image using our face recognizer
-    label = face_recognizer.predict(face)
-    print(label)
+    label, confidence = face_recognizer.predict(face)
+    print('Label: {}'.format(label))
+    print('Confidence: {}'.format(confidence))
     print(labels_dict)
     for k, v in labels_dict.items():
-        if v == label[0]:
+        if v == label:
             print('NAME:', k)
 
     # # draw a rectangle around face detected
@@ -112,11 +114,12 @@ if __name__ == '__main__':
     print("Total faces: ", len(faces))
     print("Total labels: ", len(labels))
     face_recognizer.train(faces, np.array(labels))
+    face_recognizer.save('trainner.yml')
 
     print("Predicting images...")
 
     # load test image
-    test_img1 = cv2.imread("test_data/brody.jpg")
+    test_img1 = cv2.imread("test_data/al-gore.jpg")
 
     # perform a prediction
     predicted_img1 = predict(test_img1)
