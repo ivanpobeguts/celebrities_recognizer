@@ -7,13 +7,14 @@ import math
 def detect_and_save_face(img, path):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     face_store = []
+    rectangle = []
     faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=6)
     if (len(faces) == 0):
         return None, None
 
     # (x, y, w, h) = faces[0]
     for (x, y, w, h) in faces:
-        # save.append((x, y, w, h))
+        rectangle.append((x, y, w, h))
         if y - 10 >= 0 and x - 10 >= 0:
             f = gray[y - 10:(y + h + 10), x - 10:(x + w + 10)]
             f = cv2.resize(f, (100, 100))
@@ -29,7 +30,7 @@ def detect_and_save_face(img, path):
     # return only the face part of the image
     logger.debug('1st parameter: {},\n 2nd parameter: {}'.format(gray[y:y + w, x:x + h], faces[0]))
     # return gray[y:y + w, x:x + h], faces[0]
-    return face_store
+    return face_store, rectangle
 
 
 def align(face_store):
