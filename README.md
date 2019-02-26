@@ -1,4 +1,4 @@
 # Celebrities Recognizer
 
-Web app for recognize famous actors on photo.
+Web app for recognizing famous actors on photo.
 Still in progress...
